@@ -80,7 +80,7 @@ class Main_page extends MY_Controller
         }
 
         $this->form_validation->set_rules('postId', 'Post', 'required|integer|trim');
-        $this->form_validation->set_rules('replyId', 'Reply', 'trim|integer');
+        $this->form_validation->set_rules('replyId', 'Reply Comment', 'trim|integer');
         $this->form_validation->set_rules('commentText', 'Comment', 'required|trim');
 
         if(! $this->form_validation->run()) {
@@ -150,9 +150,20 @@ class Main_page extends MY_Controller
 
     public function add_money()
     {
-        // TODO: task 4, пополнение баланса
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
 
         $sum = (float)App::get_ci()->input->post('sum');
+
+        if ($sum <= 0) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_WRONG_PARAMS, ['sum' => 'Sum must be more than 0'], 422);
+        }
+
+        $user = User_model::get_user();
+        $user->add_money($sum);
+
+        return $this->response_success(compact('sum'));
 
     }
 

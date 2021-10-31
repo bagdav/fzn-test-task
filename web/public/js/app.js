@@ -100,6 +100,7 @@ var app = new Vue({
 				sum.append('sum', self.addSum);
 				axios.post('/main_page/add_money', sum)
 					.then(function (response) {
+						self.addSum = 0
 						setTimeout(function () {
 							$('#addModal').modal('hide');
 						}, 500);
