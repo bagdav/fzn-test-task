@@ -108,12 +108,44 @@ class Main_page extends MY_Controller
 
     public function like_comment(int $comment_id)
     {
-        // TODO: task 3, лайк комментария
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
+
+        $user = User_model::get_user();
+        if ($user->get_likes_balance() < 1) {
+            return $this->response_error('No like balance');
+        }
+
+        $comment = new Comment_model($comment_id);
+        if (!$comment->is_loaded()) {
+            return $this->response_error( 'Comment not found', [], 404);
+        }
+
+        $comment->increment_likes($user);
+
+        return $this->response_success(['likes' => $comment->get_likes()]);
     }
 
     public function like_post(int $post_id)
     {
-        // TODO: task 3, лайк поста
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
+
+        $user = User_model::get_user();
+        if ($user->get_likes_balance() < 1) {
+            return $this->response_error('No like balance');
+        }
+
+        $post = new Post_model($post_id);
+        if (!$post->is_loaded()) {
+            return $this->response_error( 'Post not found', [], 404);
+        }
+
+        $post->increment_likes($user);
+
+        return $this->response_success(['likes' => $post->get_likes()]);
     }
 
     public function add_money()

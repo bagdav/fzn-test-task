@@ -125,7 +125,10 @@ var app = new Vue({
 			axios
 				.get(url)
 				.then(function (response) {
-					self.likes = response.data.likes;
+					switch(type) {
+						case 'post' : self.likes = response.data.likes; break;
+						case 'comment' : self.post.coments.find(c => c.id === id).likes = response.data.likes; break;
+					}
 				})
 
 		},
