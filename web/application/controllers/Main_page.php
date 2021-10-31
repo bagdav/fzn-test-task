@@ -1,8 +1,11 @@
 <?php
 
+use System\Libraries\Core as SI_Core;
 use Model\Boosterpack_model;
 use Model\Post_model;
 use Model\User_model;
+use Model\Login_model;
+use Model\Comment_model;
 
 /**
  * Created by PhpStorm.
@@ -22,6 +25,8 @@ class Main_page extends MY_Controller
         {
             die('In production it will be hard to debug! Run as development environment!');
         }
+
+        $this->load->library('form_validation');
     }
 
     public function index()
@@ -45,41 +50,131 @@ class Main_page extends MY_Controller
 
     public function login()
     {
-        // TODO: task 1, аутентификация
+        $this->form_validation->set_rules('login', 'Login', 'required|trim');
+        $this->form_validation->set_rules('password', 'Password', 'required|trim');
 
-        return $this->response_success();
+        if(! $this->form_validation->run()) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_WRONG_PARAMS, $this->form_validation->error_array(), 422);
+        }
+
+        $post = $this->input->post();
+        $clean = $this->security->xss_clean($post);
+
+        Login_model::login($clean['login'], $clean['password']);
+
+        return User_model::is_logged()
+            ? $this->response_success(['user' => User_model::preparation(User_model::get_user())])
+            : $this->response_error("Invalid login or password");
     }
 
     public function logout()
     {
-        // TODO: task 1, аутентификация
+        Login_model::logout();
+        redirect(base_url());
     }
 
     public function comment()
     {
-        // TODO: task 2, комментирование
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
+
+        $this->form_validation->set_rules('postId', 'Post', 'required|integer|trim');
+        $this->form_validation->set_rules('replyId', 'Reply Comment', 'trim|integer');
+        $this->form_validation->set_rules('commentText', 'Comment', 'required|trim');
+
+        if(! $this->form_validation->run()) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_WRONG_PARAMS, $this->form_validation->error_array(), 422);
+        }
+
+        $post = new Post_model($this->input->post('postId'));
+
+        if (!$post->is_loaded()) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_NO_DATA, [], 404);
+        }
+
+        $clean = $this->security->xss_clean($this->input->post());
+
+        $comment = Comment_model::create([
+            'user_id' => User_model::get_session_id(),
+            'assign_id' => $post->get_id(),
+            'reply_id' => $clean['replyId'] ?? null,
+            'text' => $clean['commentText'],
+            'likes' => 0,
+        ]);
+
+        return $this->response_success(['comment' => Comment_model::preparation($comment)]);
     }
 
     public function like_comment(int $comment_id)
     {
-        // TODO: task 3, лайк комментария
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
+
+        $user = User_model::get_user();
+        if ($user->get_likes_balance() < 1) {
+            return $this->response_error('No like balance');
+        }
+
+        $comment = new Comment_model($comment_id);
+        if (!$comment->is_loaded()) {
+            return $this->response_error( 'Comment not found', [], 404);
+        }
+
+        $comment->increment_likes($user);
+
+        return $this->response_success(['likes' => $comment->get_likes()]);
     }
 
     public function like_post(int $post_id)
     {
-        // TODO: task 3, лайк поста
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
+
+        $user = User_model::get_user();
+        if ($user->get_likes_balance() < 1) {
+            return $this->response_error('No like balance');
+        }
+
+        $post = new Post_model($post_id);
+        if (!$post->is_loaded()) {
+            return $this->response_error( 'Post not found', [], 404);
+        }
+
+        $post->increment_likes($user);
+
+        return $this->response_success(['likes' => $post->get_likes()]);
     }
 
     public function add_money()
     {
-        // TODO: task 4, пополнение баланса
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
 
         $sum = (float)App::get_ci()->input->post('sum');
+
+        if ($sum <= 0) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_WRONG_PARAMS, ['sum' => 'Sum must be more than 0'], 422);
+        }
+
+        $user = User_model::get_user();
+        $user->add_money($sum);
+
+        return $this->response_success(compact('sum'));
 
     }
 
     public function get_post(int $post_id) {
-        // TODO получения поста по id
+        $post = new Post_model($post_id);
+
+        if (!$post->is_loaded()) {
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NO_DATA, [], 404);
+        }
+
+        return $this->response_success(['post' => Post_model::preparation($post, 'full_info')]);
     }
 
     public function buy_boosterpack()
