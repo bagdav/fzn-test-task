@@ -1,8 +1,10 @@
 <?php
 
+use System\Libraries\Core as SI_Core;
 use Model\Boosterpack_model;
 use Model\Post_model;
 use Model\User_model;
+use Model\Login_model;
 
 /**
  * Created by PhpStorm.
@@ -22,6 +24,8 @@ class Main_page extends MY_Controller
         {
             die('In production it will be hard to debug! Run as development environment!');
         }
+
+        $this->load->library('form_validation');
     }
 
     public function index()
@@ -45,14 +49,27 @@ class Main_page extends MY_Controller
 
     public function login()
     {
-        // TODO: task 1, аутентификация
+        $this->form_validation->set_rules('login', 'Login', 'required|trim');
+        $this->form_validation->set_rules('password', 'Password', 'required|trim');
 
-        return $this->response_success();
+        if(! $this->form_validation->run()) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_WRONG_PARAMS, $this->form_validation->error_array(), 422);
+        }
+
+        $post = $this->input->post();
+        $clean = $this->security->xss_clean($post);
+
+        Login_model::login($clean['login'], $clean['password']);
+
+        return User_model::is_logged()
+            ? $this->response_success(['user' => User_model::preparation(User_model::get_user())])
+            : $this->response_error("Invalid login or password");
     }
 
     public function logout()
     {
-        // TODO: task 1, аутентификация
+        Login_model::logout();
+        redirect(base_url());
     }
 
     public function comment()
