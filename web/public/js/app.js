@@ -79,8 +79,12 @@ var app = new Vue({
 				axios.post(
 					'/main_page/comment',
 					comment
-				).then(function () {
-
+				)
+				.then(function (response) {
+					if(response.data.comment) {
+						self.post.coments.push(response.data.comment)
+						self.commentText = ''
+					}
 				});
 			}
 

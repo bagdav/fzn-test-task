@@ -5,6 +5,7 @@ use Model\Boosterpack_model;
 use Model\Post_model;
 use Model\User_model;
 use Model\Login_model;
+use Model\Comment_model;
 
 /**
  * Created by PhpStorm.
@@ -74,7 +75,35 @@ class Main_page extends MY_Controller
 
     public function comment()
     {
-        // TODO: task 2, комментирование
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
+        }
+
+        $this->form_validation->set_rules('postId', 'Post', 'required|integer|trim');
+        $this->form_validation->set_rules('replyId', 'Reply', 'trim|integer');
+        $this->form_validation->set_rules('commentText', 'Comment', 'required|trim');
+
+        if(! $this->form_validation->run()) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_WRONG_PARAMS, $this->form_validation->error_array(), 422);
+        }
+
+        $post = new Post_model($this->input->post('postId'));
+
+        if (!$post->is_loaded()) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_NO_DATA, [], 404);
+        }
+
+        $clean = $this->security->xss_clean($this->input->post());
+
+        $comment = Comment_model::create([
+            'user_id' => User_model::get_session_id(),
+            'assign_id' => $post->get_id(),
+            'reply_id' => $clean['replyId'] ?? null,
+            'text' => $clean['commentText'],
+            'likes' => 0,
+        ]);
+
+        return $this->response_success(['comment' => Comment_model::preparation($comment)]);
     }
 
     public function like_comment(int $comment_id)
@@ -96,7 +125,13 @@ class Main_page extends MY_Controller
     }
 
     public function get_post(int $post_id) {
-        // TODO получения поста по id
+        $post = new Post_model($post_id);
+
+        if (!$post->is_loaded()) {
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NO_DATA, [], 404);
+        }
+
+        return $this->response_success(['post' => Post_model::preparation($post, 'full_info')]);
     }
 
     public function buy_boosterpack()

@@ -148,10 +148,23 @@ class Post_model extends Emerald_Model
 
     /**
      * @return Comment_model[]
+     * @throws Exception
      */
     public function get_comments():array
     {
-       // TODO: task 2, комментирование
+        $this->is_loaded(TRUE);
+
+        if (empty($this->comments))
+        {
+            try {
+                $this->comments = Comment_model::get_all_by_assign_id($this->get_id());
+            } catch (Exception $exception)
+            {
+                $this->comments = [];
+            }
+        }
+
+        return $this->comments;
     }
 
     /**
