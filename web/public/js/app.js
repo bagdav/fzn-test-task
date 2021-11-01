@@ -140,7 +140,8 @@ var app = new Vue({
 			axios.post('/main_page/buy_boosterpack', pack)
 				.then(function (response) {
 					self.amount = response.data.amount
-					if(self.amount !== 0){
+					if(response.data.status === 'success' && self.amount !== 0){
+            self.likes += response.data.amount;
 						setTimeout(function () {
 							$('#amountModal').modal('show');
 						}, 500);

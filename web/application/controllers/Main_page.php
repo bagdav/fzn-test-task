@@ -204,8 +204,9 @@ class Main_page extends MY_Controller
             return $this->response_error('Insufficient funds');
         }
 
-        $opened = $boosterpack->open($user);
+        $amount = $boosterpack->open($user);
 
+        return $this->response_success(compact('amount'));
     }
 
 
