@@ -179,13 +179,33 @@ class Main_page extends MY_Controller
 
     public function buy_boosterpack()
     {
-        // Check user is authorize
-        if ( ! User_model::is_logged())
-        {
-            return $this->response_error(System\Libraries\Core::RESPONSE_GENERIC_NEED_AUTH);
+        // Check if the user is authorized
+        if (!User_model::is_logged()){
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NEED_AUTH, [], 401);
         }
 
-        // TODO: task 5, покупка и открытие бустерпака
+        // Validating request data
+        $this->form_validation->set_rules('id', 'Boosterpack', 'required|integer');
+
+        if(! $this->form_validation->run()) {
+            return $this->response_error( SI_Core::RESPONSE_GENERIC_WRONG_PARAMS, $this->form_validation->error_array(), 422);
+        }
+
+        $boosterpack = new Boosterpack_model($this->input->post('id'));
+
+        //Checking inf the boosterpack exists
+        if (!$boosterpack->is_loaded()) {
+            return $this->response_error(SI_Core::RESPONSE_GENERIC_NO_DATA, [], 404);
+        }
+
+
+        $user = User_model::get_user();
+        if($user->get_wallet_balance() < $boosterpack->get_price()) {
+            return $this->response_error('Insufficient funds');
+        }
+
+        $opened = $boosterpack->open($user);
+
     }
 
 

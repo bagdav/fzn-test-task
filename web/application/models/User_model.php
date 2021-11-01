@@ -287,9 +287,19 @@ class User_model extends Emerald_model {
      */
     public function remove_money(float $sum): bool
     {
-        // TODO: task 5, списание денег
+        if ($this->get_wallet_balance() >= $sum)
+        {
+            $this->set_wallet_balance(
+                $this->get_wallet_balance() - $sum
+            );
 
-        return TRUE;
+            $this->set_wallet_total_withdrawn(
+                $this->get_wallet_total_withdrawn() + $sum
+            );
+            return TRUE;
+        }
+
+        return FALSE;
     }
 
     /**
