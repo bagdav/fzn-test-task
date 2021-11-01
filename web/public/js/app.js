@@ -79,8 +79,12 @@ var app = new Vue({
 				axios.post(
 					'/main_page/comment',
 					comment
-				).then(function () {
-
+				)
+				.then(function (response) {
+					if(response.data.comment) {
+						self.post.coments.push(response.data.comment)
+						self.commentText = ''
+					}
 				});
 			}
 
@@ -96,6 +100,7 @@ var app = new Vue({
 				sum.append('sum', self.addSum);
 				axios.post('/main_page/add_money', sum)
 					.then(function (response) {
+						self.addSum = 0
 						setTimeout(function () {
 							$('#addModal').modal('hide');
 						}, 500);
@@ -121,7 +126,10 @@ var app = new Vue({
 			axios
 				.get(url)
 				.then(function (response) {
-					self.likes = response.data.likes;
+					switch(type) {
+						case 'post' : self.likes = response.data.likes; break;
+						case 'comment' : self.post.coments.find(c => c.id === id).likes = response.data.likes; break;
+					}
 				})
 
 		},
@@ -132,7 +140,8 @@ var app = new Vue({
 			axios.post('/main_page/buy_boosterpack', pack)
 				.then(function (response) {
 					self.amount = response.data.amount
-					if(self.amount !== 0){
+					if(response.data.status === 'success' && self.amount !== 0){
+            self.likes += response.data.amount;
 						setTimeout(function () {
 							$('#amountModal').modal('show');
 						}, 500);
